@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transferts internes</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6fa;color:#1f2937}
+header{background:#17365d;color:#fff;padding:18px 15px}
+header h1{margin:0;font-size:24px}
+header p{margin:6px 0 0;opacity:.85;font-size:14px}
+main{max-width:1100px;margin:auto;padding:15px}
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+h2{margin-top:0;color:#17365d;font-size:20px}
+h3{color:#17365d}
+.hidden{display:none!important}
+label{display:block;font-weight:bold;margin-bottom:5px;font-size:14px}
+input,textarea,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:7px;font-size:15px;background:#fff}
+textarea{min-height:80px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.full{grid-column:1/-1}
+button{border:0;border-radius:8px;padding:12px 16px;font-size:15px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.btn-primary{background:#17365d;color:#fff}.btn-secondary{background:#64748b;color:#fff}
+.btn-success{background:#16803c;color:#fff}.btn-warning{background:#d97706;color:#fff}
+.btn-danger{background:#c62828;color:#fff}.btn-light{background:#e2e8f0;color:#1f2937}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.line{border:1px solid #d7dee8;border-radius:10px;padding:14px;margin-top:12px;background:#fafcff}
+.line-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.line-title strong{color:#17365d}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:bold}
+.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}
+.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}
+.yellow{background:#fef9c3;color:#854d0e}.gray{background:#e5e7eb;color:#374151}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e5e7eb;padding:10px;text-align:left;font-size:14px}
+th{background:#f1f5f9}.table-wrap{overflow-x:auto}
+.alert{padding:12px;border-radius:8px;margin-bottom:12px}.alert-info{background:#dbeafe;color:#1e40af}
+.alert-warning{background:#fef3c7;color:#92400e}.alert-danger{background:#fee2e2;color:#991b1b}
+.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px}
+.stat{background:#fff;border-radius:10px;padding:15px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.stat-number{font-size:26px;font-weight:bold;color:#17365d}.stat-label{font-size:12px;color:#64748b}
+.small{font-size:12px;color:#64748b}.required{color:#c62828}.anomaly{border:2px solid #f59e0b;background:#fffaf0}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.dashboard{grid-template-columns:repeat(2,1fr)}
+table{min-width:700px}.actions button{width:100%}header h1{font-size:21px}}
+</style>
+</head>
+<body>
+<header><h1>Transferts internes</h1><p>Gestion des demandes de transfert de stock</p></header>
+<main>
+<section class="dashboard">
+<div class="stat"><div class="stat-number" id="statTotal">0</div><div class="stat-label">Demandes</div></div>
+<div class="stat"><div class="stat-number" id="statAttente">0</div><div class="stat-label">À traiter</div></div>
+<div class="stat"><div class="stat-number" id="statPartiel">0</div><div class="stat-label">Partielles</div></div>
+<div class="stat"><div class="stat-number" id="statTermine">0</div><div class="stat-label">Terminées</div></div>
+</section>
+
+<section class="card">
+<div class="actions">
+<button class="btn-primary" onclick="showSection('new')">+ Nouvelle demande</button>
+<button class="btn-secondary" onclick="showSection('list');renderList()">📋 Voir les demandes</button>
+</div>
+</section>
+
+<section id="new" class="card">
+<h2>Nouvelle demande</h2>
+<div class="alert alert-info">Le numéro et la date seront générés automatiquement.</div>
+<div class="form-grid">
+<div><label>Demandeur</label><input id="demandeur" placeholder="Nom / prénom"></div>
+<div><label>Identifiant Windows</label><input id="windows" placeholder="Exemple : DUPONTJ"></div>
+<div><label>Email</label><input id="email" type="email" placeholder="nom@entreprise.com"></div>
+<div><label>Date / heure</label><input id="dateAuto" readonly></div>
+<div class="full"><label>Commentaire de la demande</label><textarea id="commentaire" placeholder="Commentaire facultatif..."></textarea></div>
+</div>
+<h3>Articles à transférer</h3>
+<div id="lines"></div>
+<div class="actions">
+<button class="btn-light" onclick="addLine()" id="addLineButton">+ Ajouter une ligne</button>
+<button class="btn-success" onclick="saveRequest()">Enregistrer la demande</button>
+</div>
+<p class="small">Maximum : 15 lignes.</p>
+</section>
+
+<section id="list" class="card hidden">
+<h2>Demandes</h2>
+<div class="table-wrap"><table><thead><tr><th>Numéro</th><th>Date</th><th>Demandeur</th><th>Lignes</th><th>Statut</th><th>Action</th></tr></thead>
+<tbody id="listBody"></tbody></table></div>
+</section>
+
+<section id="detail" class="card hidden">
+<h2>Demande <span id="detailNum"></span></h2>
+<div id="detailInfo"></div>
+<h3>Articles</h3>
+<div id="detailBody"></div>
+<div class="actions">
+<button class="btn-secondary" onclick="showSection('list');renderList()">← Retour</button>
+<button class="btn-success" onclick="validatePhysical()">📦 Validation physique</button>
+<button class="btn-warning" onclick="validateSAP()">💻 Validation SAP</button>
+</div>
+</section>
+</main>
+
+<script>
+const STORAGE_KEY="transferts_internes_v2";
+let data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+let currentIndex=null;
+
+function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data));updateDashboard()}
+function pad(n,s){return String(n).padStart(s,"0")}
+function getTodayPrefix(){const d=new Date();return String(d.getFullYear()).slice(-2)+pad(d.getMonth()+1,2)+pad(d.getDate(),2)}
+function nextRequestNumber(){
+ const p=getTodayPrefix();let max=0;
+ data.forEach(r=>{if(r.numero&&r.numero.startsWith(p)){const n=parseInt(r.numero.substring(6),10);if(n>max)max=n}});
+ return p+pad(max+1,4)
+}
+function nowText(){return new Date().toLocaleString("fr-FR")}
+function showSection(id){["new","list","detail"].forEach(s=>document.getElementById(s).classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
+
+function addLine(){
+ const c=document.getElementById("lines"),count=c.children.length;
+ if(count>=15){alert("Maximum de 15 lignes atteint.");return}
+ const div=document.createElement("div");div.className="line";
+ div.innerHTML=`
+ <div class="line-title"><strong>Ligne ${count+1}</strong>
+ <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove();renumberLines()">Supprimer</button></div>
+ <div class="form-grid">
+ <div><label>Code article <span class="required">*</span></label><input class="codeArticle" placeholder="Code article"></div>
+ <div><label>Nom article <span class="required">*</span></label><input class="nomArticle" placeholder="Nom article"></div>
+ <div><label>Numéro US</label><input class="numeroUS" inputmode="numeric" maxlength="10" placeholder="10 chiffres"></div>
+ <div><label>Quantité demandée <span class="required">*</span></label><input class="quantite" type="number" step="any" min="0" placeholder="Quantité"></div>
+ <div><label>Unité de stockage <span class="required">*</span></label><input class="unite" placeholder="KG, PC, L..."></div>
+ <div><label>Emplacement actuel <span class="required">*</span></label><input class="emplacementActuel" placeholder="Ex : MAG01"></div>
+ <div><label>Emplacement désiré <span class="required">*</span></label><input class="emplacementDesire" placeholder="Ex : MAG02"></div>
+ </div>`;
+ c.appendChild(div);renumberLines()
+}
+function renumberLines(){
+ document.querySelectorAll("#lines .line").forEach((l,i)=>l.querySelector(".line-title strong").textContent="Ligne "+(i+1));
+ const count=document.querySelectorAll("#lines .line").length,b=document.getElementById("addLineButton");
+ b.disabled=count>=15;b.textContent=count>=15?"Maximum 15 lignes":"+ Ajouter une ligne";
+}
+
+function saveRequest(){
+ const demandeur=document.getElementById("demandeur").value.trim();
+ const windows=document.getElementById("windows").value.trim();
+ const email=document.getElementById("email").value.trim();
+ const commentaire=document.getElementById("commentaire").value.trim();
+ if(!demandeur){alert("Merci de renseigner le demandeur.");return}
+ if(!windows){alert("Merci de renseigner l'identifiant Windows.");return}
+ const els=document.querySelectorAll("#lines .line");
+ if(!els.length){alert("Ajoutez au moins une ligne.");return}
+ const lignes=[];
+ for(let i=0;i<els.length;i++){
+  const l=els[i],code=l.querySelector(".codeArticle").value.trim(),nom=l.querySelector(".nomArticle").value.trim();
+  const us=l.querySelector(".numeroUS").value.trim(),q=l.querySelector(".quantite").value;
+  const unite=l.querySelector(".unite").value.trim(),act=l.querySelector(".emplacementActuel").value.trim(),des=l.querySelector(".emplacementDesire").value.trim();
+  if(!code||!nom||!q||!unite||!act||!des){alert("Merci de compléter tous les champs obligatoires de la ligne "+(i+1)+".");return}
+  if(us&&!/^\\d{10}$/.test(us)){alert("Le numéro US de la ligne "+(i+1)+" doit contenir exactement 10 chiffres.");return}
+  lignes.push({numeroLigne:i+1,codeArticle:code,nomArticle:nom,numeroUS:us,quantiteDemandee:Number(q),unite,emplacementActuel:act,emplacementDesire:des,quantitePhysique:null,statutPhysique:"EN ATTENTE",motifModification:"",commentairePhysique:"",statutSAP:"EN ATTENTE",commentaireSAP:"",anomalie:false})
+ }
+ const request={numero:nextRequestNumber(),date:nowText(),demandeur,windows,email,commentaire,statut:"A TRAITER",lignes};
+ data.push(request);saveData();alert("Demande "+request.numero+" enregistrée.");resetForm();showSection("list");renderList()
+}
+function resetForm(){document.getElementById("demandeur").value="";document.getElementById("windows").value="";document.getElementById("email").value="";document.getElementById("commentaire").value="";document.getElementById("lines").innerHTML="";addLine();updateDate()}
+
+function renderList(){
+ const body=document.getElementById("listBody");body.innerHTML="";
+ if(!data.length){body.innerHTML="<tr><td colspan='6'>Aucune demande enregistrée.</td></tr>";return}
+ data.forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><strong>${r.numero}</strong></td><td>${r.date}</td><td>${escapeHtml(r.demandeur)}</td><td>${r.lignes.length}</td><td>${statusBadge(r)}</td><td><button class="btn-primary" onclick="openDetail(${i})">Ouvrir</button></td>`;body.appendChild(tr)})
+}
+function statusBadge(r){
+ const s=calculateStatus(r);let c="blue";
+ if(s==="TERMINEE")c="green";if(s==="PARTIELLE")c="orange";if(s==="ERREUR")c="red";if(s==="EN COURS")c="yellow";
+ return `<span class="badge ${c}">${s}</span>`
+}
+function calculateStatus(r){
+ const l=r.lignes,p=l.filter(x=>x.statutPhysique==="REALISE"||x.statutPhysique==="REALISE AVEC MODIFICATION").length,s=l.filter(x=>x.statutSAP==="REALISE").length,e=l.filter(x=>x.statutPhysique==="ERREUR"||x.statutPhysique==="IMPOSSIBLE"||x.statutSAP==="ERREUR").length;
+ if(e)return"ERREUR";if(p===l.length&&s===l.length)return"TERMINEE";if(p>0)return"PARTIELLE";return"A TRAITER"
+}
+
+function openDetail(i){
+ currentIndex=i;const r=data[i];document.getElementById("detailNum").textContent=r.numero;
+ document.getElementById("detailInfo").innerHTML=`<div class="alert alert-info"><strong>Demandeur :</strong> ${escapeHtml(r.demandeur)}<br><strong>Windows :</strong> ${escapeHtml(r.windows)}<br><strong>Date :</strong> ${r.date}<br><strong>Email :</strong> ${escapeHtml(r.email||"-")}<br><strong>Commentaire :</strong> ${escapeHtml(r.commentaire||"-")}</div>`;
+ const body=document.getElementById("detailBody");body.innerHTML="";
+ r.lignes.forEach(line=>{
+  const div=document.createElement("div");div.className="line "+(line.anomalie?"anomaly":"");
+  div.innerHTML=`<div class="line-title"><strong>Ligne ${line.numeroLigne}</strong>${line.anomalie?'<span class="badge orange">ANOMALIE</span>':""}</div>
+  <div class="form-grid">
+  <div><label>Article</label><input readonly value="${escapeAttr(line.codeArticle)}"></div>
+  <div><label>Nom</label><input readonly value="${escapeAttr(line.nomArticle)}"></div>
+  <div><label>Numéro US</label><input readonly value="${escapeAttr(line.numeroUS||"-")}"></div>
+  <div><label>Quantité demandée</label><input readonly value="${line.quantiteDemandee} ${escapeAttr(line.unite)}"></div>
+  <div><label>Emplacement actuel</label><input readonly value="${escapeAttr(line.emplacementActuel)}"></div>
+  <div><label>Emplacement désiré</label><input readonly value="${escapeAttr(line.emplacementDesire)}"></div>
+  <div><label>Statut physique</label><input readonly value="${escapeAttr(line.statutPhysique)}"></div>
+  <div><label>Quantité physique</label><input readonly value="${line.quantitePhysique===null?"-":line.quantitePhysique} ${escapeAttr(line.unite)}"></div>
+  <div><label>Statut SAP</label><input readonly value="${escapeAttr(line.statutSAP)}"></div>
+  <div class="full"><label>Commentaire physique</label><textarea readonly>${escapeHtml(line.commentairePhysique||"")}</textarea></div>
+  <div class="full"><label>Motif de modification</label><textarea readonly>${escapeHtml(line.motifModification||"")}</textarea></div>
+  <div class="full"><label>Commentaire SAP</label><textarea readonly>${escapeHtml(line.commentaireSAP||"")}</textarea></div>
+  </div>`;
+  body.appendChild(div)
+ });showSection("detail")
+}
+
+function validatePhysical(){
+ if(currentIndex===null)return;const r=data[currentIndex];
+ r.lignes.forEach(line=>{
+  if(line.statutPhysique==="REALISE"||line.statutPhysique==="REALISE AVEC MODIFICATION")return;
+  const a=prompt("Ligne "+line.numeroLigne+" - Quantité demandée : "+line.quantiteDemandee+" "+line.unite+"\n\nEntrez la quantité réellement transférée.\nLaissez vide pour ne pas modifier cette ligne.");
+  if(a===null||a.trim()==="")return;const q=Number(a);
+  if(isNaN(q)||q<0){alert("Quantité incorrecte.");return}
+  line.quantitePhysique=q;
+  if(q===line.quantiteDemandee){line.statutPhysique="REALISE";line.anomalie=false;line.motifModification=""}
+  else{
+   const motif=prompt("La quantité est différente de la demande.\n\nMotif obligatoire :");
+   if(!motif||motif.trim()===""){alert("Motif obligatoire. La validation de cette ligne est annulée.");line.quantitePhysique=null;line.statutPhysique="EN ATTENTE";line.anomalie=false;return}
+   line.statutPhysique="REALISE AVEC MODIFICATION";line.anomalie=true;line.motifModification=motif.trim();line.commentairePhysique="Quantité ajustée : "+line.quantiteDemandee+" → "+q+" "+line.unite;
+  }
+ });
+ saveData();openDetail(currentIndex);alert("Validation physique enregistrée.")
+}
+
+function validateSAP(){
+ if(currentIndex===null)return;const r=data[currentIndex];
+ if(r.lignes.some(l=>l.statutPhysique!=="REALISE"&&l.statutPhysique!=="REALISE AVEC MODIFICATION")){alert("Toutes les lignes ne sont pas encore validées physiquement.");return}
+ r.lignes.forEach(line=>{
+  if(line.statutSAP==="REALISE")return;
+  if(confirm("Ligne "+line.numeroLigne+"\n\n"+line.codeArticle+"\n\nLe transfert SAP est-il réalisé ?")){line.statutSAP="REALISE";line.commentaireSAP=prompt("Commentaire SAP facultatif :")||""}
+  else{line.statutSAP="ERREUR";line.anomalie=true;line.commentaireSAP=prompt("Indiquez le problème SAP :")||"Erreur SAP"}
+ });
+ saveData();openDetail(currentIndex);alert("Validation SAP enregistrée.")
+}
+
+function updateDashboard(){
+ document.getElementById("statTotal").textContent=data.length;
+ document.getElementById("statAttente").textContent=data.filter(r=>calculateStatus(r)==="A TRAITER").length;
+ document.getElementById("statPartiel").textContent=data.filter(r=>calculateStatus(r)==="PARTIELLE").length;
+ document.getElementById("statTermine").textContent=data.filter(r=>calculateStatus(r)==="TERMINEE").length;
+}
+function updateDate(){document.getElementById("dateAuto").value=nowText()}
+function escapeHtml(v){return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function escapeAttr(v){return escapeHtml(v)}
+function init(){updateDate();addLine();updateDashboard()}
+init();
+</script>
+</body>
+</html>
