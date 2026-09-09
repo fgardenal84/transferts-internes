@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Transferts internes</title>
+<style>
+body{font-family:Arial;margin:0;background:#f3f5f7;color:#222}header{background:#17365d;color:#fff;padding:18px 24px}
+main{max-width:1200px;margin:20px auto;padding:0 15px}.card{background:#fff;padding:18px;margin-bottom:18px;border-radius:8px;box-shadow:0 1px 4px #ccc}
+button{background:#17365d;color:#fff;border:0;border-radius:5px;padding:9px 13px;margin:4px;cursor:pointer}
+button.gray{background:#6c757d}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+label{font-weight:bold;font-size:13px}input,textarea{box-sizing:border-box;width:100%;padding:7px;margin-top:4px;border:1px solid #bbb;border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:6px}th{background:#eee}
+.hidden{display:none}.badge{padding:4px 7px;border-radius:10px;font-weight:bold}.blue{background:#dbeafe}.green{background:#dcfce7}.orange{background:#ffedd5}.red{background:#fee2e2}
+@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}table{display:block;overflow:auto}}
+</style>
+</head>
+<body>
+<header><h1>Transferts internes de stock</h1></header>
+<main>
+<div><button onclick="show('new')">+ Nouvelle demande</button><button onclick="show('list')">Liste des demandes</button></div>
+
+<section id="new" class="card">
+<h2>Nouvelle demande</h2>
+<div class="grid">
+<div><label>Numéro</label><input id="num" readonly></div>
+<div><label>Date</label><input id="date" readonly></div>
+<div><label>Demandeur</label><input id="who" placeholder="Nom / Windows ID"></div>
+<div><label>Statut</label><input value="A TRAITER" readonly></div>
+</div>
+<p><label>Commentaire</label><textarea id="comment"></textarea></p>
+<h3>Lignes — maximum 15</h3>
+<table><thead><tr><th>#</th><th>Code article</th><th>Nom article</th><th>N° US</th><th>Qté</th><th>Unité</th><th>Actuel</th><th>Souhaité</th></tr></thead>
+<tbody id="lines"></tbody></table>
+<p><button onclick="save()">Enregistrer</button><button class="gray" onclick="resetForm()">Effacer</button></p>
+</section>
+
+<section id="list" class="card hidden">
+<h2>Demandes</h2>
+<table><thead><tr><th>Numéro</th><th>Date</th><th>Demandeur</th><th>Lignes</th><th>Statut</th><th></th></tr></thead>
+<tbody id="listBody"></tbody></table>
+</section>
+
+<section id="detail" class="card hidden">
+<h2>Demande <span id="detailNum"></span></h2><div id="head"></div>
+<table><thead><tr><th>#</th><th>Article</th><th>Demandé</th><th>Physique</th><th>Statut physique</th><th>SAP</th><th>Anomalie</th></tr></thead>
+<tbody id="detailBody"></tbody></table>
+<p><button onclick="physical()">Valider le physique</button><button onclick="sap()">Valider SAP</button><button class="gray" onclick="show('list')">Retour</button></p>
+</section>
+</main>
+<script>
+const KEY="transferts_demo_v1"; let data=JSON.parse(localStorage.getItem(KEY)||"[]"),current=-1;
+const pad=n=>String(n).padStart(2,"0");
+function nextNum(){let d=new Date(),p=String(d.getFullYear()).slice(2)+pad(d.getMonth()+1)+pad(d.getDate());return p+String(data.filter(x=>x.num.startsWith(p)).length+1).padStart(4,"0")}
+function buildLines(){let b=document.getElementById("lines");b.innerHTML="";for(let i=1;i<=15;i++)b.innerHTML+=`<tr><td>${i}</td><td><input data-k="code"></td><td><input data-k="name"></td><td><input data-k="us" maxlength="10"></td><td><input data-k="qty" type="number" step="any"></td><td><input data-k="unit"></td><td><input data-k="from"></td><td><input data-k="to"></td></tr>`}
+function init(){document.getElementById("num").value=nextNum();document.getElementById("date").value=new Date().toLocaleString("fr-FR");buildLines();renderList()}
+function show(id){["new","list","detail"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden");if(id==="new")init();if(id==="list")renderList()}
+function save(){let ls=[],bad=false;document.querySelectorAll("#lines tr").forEach((r,i)=>{let v=k=>r.querySelector(`[data-k="${k}"]`).value.trim();if(v("code")||v("name")||v("qty")){if(v("us")&&!/^\d{10}$/.test(v("us"))){alert("N° US invalide à la ligne "+(i+1));bad=true;return}ls.push({n:i+1,code:v("code"),name:v("name"),us:v("us"),qty:v("qty"),unit:v("unit"),from:v("from"),to:v("to"),physical:"EN ATTENTE",physicalQty:"",sap:"EN ATTENTE",anomaly:false,reason:""})}});if(bad)return;if(!ls.length){alert("Ajoutez au moins une ligne.");return}let r={num:document.getElementById("num").value,date:document.getElementById("date").value,who:document.getElementById("who").value||"Non renseigné",comment:document.getElementById("comment").value,lines:ls,status:"A TRAITER"};data.push(r);localStorage.setItem(KEY,JSON.stringify(data));alert("Demande "+r.num+" enregistrée.");show("list")}
+function cls(s){return s==="TERMINEE"?"green":s==="PARTIELLE"?"orange":s==="ERREUR"?"red":"blue"}
+function renderList(){let b=document.getElementById("listBody");b.innerHTML=data.length?data.map((r,i)=>`<tr><td>${r.num}</td><td>${r.date}</td><td>${r.who}</td><td>${r.lines.length}</td><td><span class="badge ${cls(r.status)}">${r.status}</span></td><td><button onclick="openDetail(${i})">Ouvrir</button></td></tr>`).join(""):`<tr><td colspan="6">Aucune demande</td></tr>`}
+function openDetail(i){current=i;let r=data[i];document.getElementById("detailNum").textContent=r.num;document.getElementById("head").innerHTML=`<p><b>Date :</b> ${r.date} &nbsp; <b>Demandeur :</b> ${r.who}<br><b>Commentaire :</b> ${r.comment||"—"}</p>`;document.getElementById("detailBody").innerHTML=r.lines.map(l=>`<tr><td>${l.n}</td><td>${l.code} — ${l.name}</td><td>${l.qty} ${l.unit}</td><td>${l.physicalQty||"—"}</td><td>${l.physical}</td><td>${l.sap}</td><td>${l.anomaly?"⚠️ "+l.reason:""}</td></tr>`).join("");show("detail")}
+function physical(){let r=data[current],q=prompt("Quantités physiques, séparées par des virgules :",r.lines.map(x=>x.qty).join(","));if(q===null)return;let a=q.split(",").map(x=>x.trim());r.lines.forEach((l,i)=>{if(a[i]){l.physicalQty=a[i];if(String(a[i])!==String(l.qty)){l.physical="REALISE AVEC MODIFICATION";l.anomaly=true;l.reason=prompt("Motif obligatoire ligne "+l.n+":","Stock disponible différent")||"Motif non renseigné"}else l.physical="REALISE"}});r.status=r.lines.every(x=>x.physical!=="EN ATTENTE")?"PHYSIQUE TERMINEE":"PARTIELLE";localStorage.setItem(KEY,JSON.stringify(data));openDetail(current)}
+function sap(){let r=data[current];if(!r.lines.every(x=>x.physical!=="EN ATTENTE")){alert("Validez d'abord le physique.");return}if(!confirm("Confirmer que le transfert SAP est réalisé ?"))return;r.lines.forEach(x=>x.sap="REALISE");r.status="TERMINEE";localStorage.setItem(KEY,JSON.stringify(data));openDetail(current)}
+function resetForm(){document.getElementById("who").value="";document.getElementById("comment").value="";buildLines()}
+init();
+</script>
+</body></html>
