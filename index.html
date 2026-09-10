@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transferts internes</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6fa;color:#1f2937}
+header{background:#17365d;color:#fff;padding:18px 15px}
+header h1{margin:0;font-size:24px}.small{font-size:12px;color:#64748b}
+main{max-width:1200px;margin:auto;padding:15px}
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+h2,h3{color:#17365d;margin-top:0}
+.hidden{display:none!important}
+label{display:block;font-weight:bold;margin-bottom:5px;font-size:14px}
+input,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:7px;font-size:15px;background:#fff}
+textarea{min-height:80px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}
+button{border:0;border-radius:8px;padding:11px 15px;font-size:15px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}.btn-primary{background:#17365d;color:#fff}.btn-secondary{background:#64748b;color:#fff}
+.btn-success{background:#16803c;color:#fff}.btn-warning{background:#d97706;color:#fff}.btn-danger{background:#c62828;color:#fff}.btn-light{background:#e2e8f0;color:#1f2937}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px}
+.stat{background:#fff;border-radius:10px;padding:15px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.stat-number{font-size:26px;font-weight:bold;color:#17365d}.stat-label{font-size:12px;color:#64748b}
+.alert{padding:12px;border-radius:8px;margin-bottom:12px}.alert-info{background:#dbeafe;color:#1e40af}
+.alert-warning{background:#fef3c7;color:#92400e}.alert-danger{background:#fee2e2;color:#991b1b}
+.table-wrap{overflow-x:auto;border:1px solid #dbe2ea;border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:1050px}th,td{border-bottom:1px solid #e5e7eb;padding:7px;text-align:left;font-size:13px;vertical-align:middle}
+th{background:#eef3f8;color:#17365d;white-space:nowrap}td input{min-width:90px;padding:8px}
+td input.qty{min-width:100px;font-weight:bold}.readonly{background:#f1f5f9}
+.line-ok{background:#f0fdf4}.line-warning{background:#fffbeb}.line-error{background:#fef2f2}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:bold}
+.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.yellow{background:#fef9c3;color:#854d0e}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:15px;z-index:20}
+.modal-box{background:#fff;border-radius:12px;padding:18px;max-width:900px;width:100%;max-height:90vh;overflow:auto}
+#sapPaste{min-height:180px;font-family:monospace;font-size:13px}
+.mapping{display:grid;grid-template-columns:1fr 1fr;gap:8px}.maprow{padding:9px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px}
+.note{padding:9px;background:#f8fafc;border-left:4px solid #17365d;margin:10px 0}
+.comment-auto{background:#fff7ed;border:1px solid #fed7aa;padding:10px;border-radius:8px;margin-top:10px}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.dashboard{grid-template-columns:repeat(2,1fr)}header h1{font-size:21px}.actions button{width:100%}}
+.line-count-message{
+  margin:8px 0 10px;
+  padding:9px 12px;
+  border-radius:8px;
+  background:#eef5ff;
+  color:#164a8a;
+  font-weight:600;
+  font-size:14px;
+}
+.excel-paste-hint{
+  margin:8px 0 10px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:#f3f7fb;
+  border:1px solid #d9e5f0;
+  color:#334155;
+  font-size:13px;
+  line-height:1.4;
+}
+.excel-paste-hint strong{color:#123d67}
+
+.preview-table-wrap{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch}
+.preview-table-wrap table{min-width:1000px}
+.preview-table-wrap th,.preview-table-wrap td{white-space:nowrap}
+
+
+
+.excel-direct-note{margin:8px 0 10px;padding:9px 12px;border:1px solid #d9e5f0;border-radius:8px;background:#f3f7fb;color:#334155;font-size:13px}
+#lineBody input{min-width:95px}
+#lineBody tr:hover{background:#f8fafc}
+
+#lineBody input:focus{outline:2px solid #2563eb;outline-offset:-1px;background:#fff}
+#lineBody td{padding:2px}
+#lineBody input{width:100%;box-sizing:border-box;border:1px solid #d7dee8;border-radius:2px;padding:7px 6px;background:#fff}
+#lineBody tr{height:38px}
+
+.total-demand-message{margin:8px 0;padding:9px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-size:13px}
+</style>
+<style>
+.operator-panel{margin:22px 0;padding:20px;border:1px solid #dbe3ec;border-radius:14px;background:#fff}
+.operator-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.operator-grid label{font-weight:600;font-size:13px;color:#334155}.operator-grid input,.operator-grid select{width:100%;box-sizing:border-box;margin-top:6px;padding:9px;border:1px solid #cbd5e1;border-radius:7px}
+.op-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.op-actions button{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}.op-blue{background:#2563eb;color:#fff}.op-green{background:#16a34a;color:#fff}.op-orange{background:#ea580c;color:#fff}.op-red{background:#dc2626;color:#fff}
+.op-line-realise{background:#dcfce7}.op-line-partiel{background:#ffedd5}.op-line-anomalie{background:#fee2e2}.op-line-attente{background:#dbeafe}
+.op-table input,.op-table select{padding:7px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box}.op-table{width:100%;border-collapse:collapse}.op-table th,.op-table td{padding:8px;border-bottom:1px solid #e2e8f0;text-align:left}.op-msg{margin:8px 0;color:#475569;font-weight:600}
+@media(max-width:850px){.operator-grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><h1>Transferts internes</h1><div>Demandes de transfert de stock</div></header>
+<main>
+<section class="dashboard">
+<div class="stat"><div class="stat-number" id="statTotal">0</div><div class="stat-label">Demandes</div></div>
+<div class="stat"><div class="stat-number" id="statAttente">0</div><div class="stat-label">À traiter</div></div>
+<div class="stat"><div class="stat-number" id="statPartiel">0</div><div class="stat-label">Partielles</div></div>
+<div class="stat"><div class="stat-number" id="statTermine">0</div><div class="stat-label">Terminées</div></div>
+</section>
+
+<section class="card">
+<div class="actions">
+<button class="btn-primary" onclick="showSection('new')">+ Nouvelle demande</button>
+<button class="btn-secondary" onclick="showSection('list');renderList()">📋 Voir les demandes</button>
+</div>
+</section>
+
+<section id="new" class="card">
+<h2>Nouvelle demande</h2>
+<div class="alert alert-info">Tu peux remplir le tableau manuellement ou coller un extrait SAP. Le format SAP peut varier : le site cherche les colonnes grâce à leurs en-têtes et ignore les colonnes inutiles.</div>
+
+<div class="form-grid">
+<div><label>Demandeur</label><input id="demandeur" placeholder="Nom / prénom"></div>
+<div><label>Identifiant Windows</label><input id="windows" placeholder="Exemple : DUPONTJ"></div>
+<div><label>Email</label><input id="email" type="email" placeholder="nom@entreprise.com"></div>
+<div><label>Date / heure</label><input id="dateAuto" readonly></div>
+<div class="full"><label>Commentaire de la demande</label><textarea id="commentaire" placeholder="Commentaire facultatif..."></textarea></div>
+</div>
+
+<div class="actions">
+<button class="btn-light" onclick="clearLines()">Effacer les lignes</button>
+<button class="btn-light" onclick="addLine()">+ Ajouter une ligne</button>
+</div>
+
+<div class="note"><strong>Saisie libre :</strong> toutes les lignes sont remplies directement dans le tableau. Les informations SAP peuvent être recopiées manuellement. Aucune importation SAP n’est nécessaire.</div>
+
+
+
+
+<div id="excel-direct-note" class="excel-direct-note">
+📋 <strong>Collage Excel :</strong> sélectionnez votre bloc dans Excel, <strong>Ctrl+C</strong>, cliquez sur la première cellule du tableau puis <strong>Ctrl+V</strong>.
+</div>
+<div id="totalDemandMessage" class="total-demand-message"></div>
+<div id="lineCountMessage" class="line-count-message">0 ligne demandée</div>
+<div class="table-wrap">
+<table id="lineTable">
+<thead><tr>
+<th>#</th><th>Article</th><th>Désignation</th><th>N° US</th><th>Lot</th><th>Qté disponible</th><th>Qté demandée *</th><th>Unité</th><th>Emplacement actuel</th><th>Emplacement souhaité</th><th></th>
+</tr></thead>
+<tbody id="lineBody"></tbody>
+</table><div class="muted" style="margin-top:8px">Les 15 lignes sont toujours disponibles. Les lignes entièrement vides seront supprimées automatiquement lors de la validation.</div>
+</div>
+
+<div id="autoComment" class="comment-auto hidden"></div>
+<div class="actions">
+<button class="btn-success" onclick="saveRequest()">Enregistrer la demande</button>
+</div>
+<p class="small">Maximum : 15 lignes. Les lignes vides ne sont pas enregistrées.</p>
+</section>
+
+<section id="list" class="card hidden">
+<h2>Demandes</h2>
+<div class="table-wrap"><table><thead><tr><th>Numéro</th><th>Date</th><th>Demandeur</th><th>Lignes</th><th>Statut</th><th></th></tr></thead><tbody id="requestBody"></tbody></table></div>
+<div id="detail" class="card hidden"></div>
+</section>
+<section id="operatorSection" class="section">
+<div class="card operator-panel">
+<h2>Prise en charge et réalisation</h2>
+<p class="muted">Sélectionne une demande, prends-la en charge, puis valide chaque ligne avec la quantité réellement transférée.</p>
+<div class="operator-grid">
+<label>Demande à traiter<select id="opRequest"></select></label>
+<label>Opérateur<input id="opName" placeholder="Nom de l'opérateur"></label>
+<label>Date de prise en charge<input id="opDate" type="datetime-local"></label>
+</div>
+<div class="op-actions"><button class="op-blue" onclick="opTakeOver()">Prendre en charge</button><button class="op-green" onclick="opComplete()">Valider la réalisation</button><button class="op-orange" onclick="opPartial()">Réalisation partielle</button><button class="op-red" onclick="opAnomaly()">Signaler une anomalie</button></div>
+<div id="opMsg" class="op-msg"></div>
+<div class="table-wrap"><table class="op-table"><thead><tr><th>#</th><th>Article</th><th>Lot</th><th>Demandée</th><th>Réalisée</th><th>État</th><th>Anomalie / motif</th></tr></thead><tbody id="opBody"></tbody></table></div>
+</div></section></main>
+
+
+<script>
+const KEY='transferts_internes_v3';
+const MAX_LINES=15;
+let requests=JSON.parse(localStorage.getItem(KEY)||'[]');
+
+
+
+
+
+
+
+document.addEventListener('input', e=>{
+  if(e.target.closest && e.target.closest('#lineBody')) updateLineCount();
+});
+
+
+
+
+
+function updateTotalDemandMessage(){
+  const el=document.getElementById('totalDemandMessage');
+  if(!el)return;
+  const rows=[...document.querySelectorAll('#lineBody tr')];
+  const used=rows.filter(tr=>[...tr.querySelectorAll('input[data-k]')].some(i=>i.value.trim()!==''));
+  let total=used.length, unchanged=0;
+  used.forEach(tr=>{
+    const q=tr.querySelector('[data-k="demande"]');
+    const a=tr.querySelector('[data-k="disponible"]');
+    if(q && a && q.value.trim() && q.value.trim()===a.value.trim()) unchanged++;
+  });
+  el.textContent = total
+    ? (unchanged===total
+       ? 'ℹ️ Quantité totale demandée : pour les '+total+' ligne'+(total>1?'s':'')+', la quantité demandée correspond au stock disponible.'
+       : 'ℹ️ '+unchanged+' ligne'+(unchanged>1?'s':'')+' sur '+total+' demandent la totalité du stock disponible.')
+    : '';
+}
+function updateDemandDefault(input){
+  const tr=input.closest('tr');
+  if(!tr)return;
+  const q=tr.querySelector('[data-k="demande"]');
+  if(!q)return;
+  const oldAvail=q.dataset.defaultAvailable;
+  if(!q.value.trim() || q.value===oldAvail) q.value=input.value;
+  q.dataset.defaultAvailable=input.value;
+  updateLineCount();
+}
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(!t || !t.closest || !t.closest('#lineBody')) return;
+  if(t.dataset.k==='disponible') updateDemandDefault(t);
+  updateLineCount();
+});
+function openExcelPaste(){
+  const m=document.getElementById('excelPasteModal');
+  if(m){m.style.display='flex';}
+  const a=document.getElementById('excelPasteArea');
+  if(a){a.value='';setTimeout(()=>a.focus(),100);}
+}
+function closeExcelPaste(){
+  const m=document.getElementById('excelPasteModal');
+  if(m)m.style.display='none';
+}
+function cleanPasteValue(v){ return (v??'').replace(/\u00a0/g,' ').trim(); }
+
+function applyExcelPaste(){
+  const raw=document.getElementById('excelPasteArea')?.value||'';
+  if(!raw.trim()){ alert('Aucune donnée à coller.'); return; }
+
+  const matrix=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n')
+    .split('\n')
+    .filter(x=>x.trim()!=='')
+    .map(x=>x.split('\t').map(cleanPasteValue));
+
+  if(!matrix.length)return;
+
+  // Detect a standard SAP extract: 16 columns with Article=6, Designation=7,
+  // Lot=8, Emplacement=11, Stock=12, Unit=13 (1-based positions).
+  const isSAP = matrix.some(r =>
+    r.length>=13 &&
+    (String(r[5]).toLowerCase()==='article' ||
+     String(r[6]).toLowerCase().includes('désignation') ||
+     String(r[11]).toLowerCase().includes('stock disponible'))
+  );
+
+  let data=matrix;
+  if(isSAP){
+    // Remove header row if present.
+    if(matrix[0].some(v=>v.toLowerCase()==='article' || v.toLowerCase().includes('désignation article'))){
+      data=matrix.slice(1);
+    }
+    data=data.map(r=>[
+      r[5]||'',  // Article
+      r[6]||'',  // Désignation
+      '',        // US (not present in this SAP export)
+      r[7]||'',  // Lot
+      r[11]||'', // Qté disponible
+      '',        // Qté demandée
+      r[12]||'', // Unité
+      r[10]||'', // Emplacement actuel
+      ''         // Emplacement souhaité
+    ]);
+  } else if(matrix[0] && matrix[0].length>=9){
+    // Direct 9-column table copy.
+    const first=matrix[0].map(v=>v.toLowerCase());
+    const looksHeader=first.some(v=>v==='article' || v.includes('désignation') || v.includes('qté'));
+    if(looksHeader) data=matrix.slice(1);
+    data=data.map(r=>r.slice(0,9));
+  }
+
+  const rows=[...document.querySelectorAll('#lineBody tr')];
+  data.slice(0,15).forEach((vals,i)=>{
+    const tr=rows[i];
+    if(!tr)return;
+    const keys=['article','designation','us','lot','disponible','demande','unite','actuel','desire'];
+    keys.forEach((k,j)=>{
+      const input=tr.querySelector('[data-k="'+k+'"]');
+      if(input)input.value=vals[j]||'';
+    });
+  });
+
+  updateLineCount();
+  closeExcelPaste();
+  const n=Math.min(data.length,15);
+  alert(n+' ligne'+(n>1?'s':'')+' ont été placées dans le tableau.');
+}
+function renderAllRequestLines(lines){
+  if(!Array.isArray(lines)) return '';
+  return lines.map((l,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${esc(l.article||l.code||'')}</td>
+      <td>${esc(l.designation||l.nom||'')}</td>
+      <td>${esc(l.us||l.numeroUS||'')}</td>
+      <td>${esc(l.lot||'')}</td>
+      <td>${esc(l.disponible||l.quantiteDisponible||'')}</td>
+      <td>${esc(l.demande||l.quantiteDemandee||'')}</td>
+      <td>${esc(l.unite||l.uniteStockage||'')}</td>
+      <td>${esc(l.actuel||l.emplacementActuel||'')}</td>
+      <td>${esc(l.desire||l.emplacementDesire||'')}</td>
+    </tr>`).join('');
+}
+
+function handleExcelPaste(e){
+  const target=e.target;
+  if(!target || !target.closest || !target.closest('#lineBody')) return;
+
+  let text='';
+  if(e.clipboardData){
+    text=e.clipboardData.getData('text/plain') || e.clipboardData.getData('text');
+  }
+  // Accept both:
+  // 1) a complete Excel block (columns separated by tabs)
+  // 2) a single Excel column (one value per line)
+  // Excel copies a single column without tab characters, so we must not
+  // reject that case.
+  if(!text) return;
+
+  // Stop the browser's normal input paste: it would put the whole block
+  // into the currently selected cell.
+  e.preventDefault();
+  e.stopPropagation();
+
+  const rows=[...document.querySelectorAll('#lineBody tr')];
+  const tr=target.closest('tr');
+  let startRow=rows.indexOf(tr);
+  if(startRow<0) startRow=0;
+
+  const keys=['article','designation','us','lot','disponible','demande','unite','actuel','desire'];
+  let startCol=keys.indexOf(target.dataset.k);
+  if(startCol<0) startCol=0;
+
+  const normalized=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  let rawLines=normalized.split('\n');
+  if(rawLines.length && rawLines[rawLines.length-1].trim()==='') rawLines.pop();
+  const matrix=rawLines.map(line=>line.split('\t'));
+
+  // Optional header row
+  if(matrix.length && matrix[0].some(v=>{
+    const s=String(v).toLowerCase().trim();
+    return s==='article' || s.includes('désignation') || s.includes('n° us') ||
+           s.includes('unité de stock') || s.includes('stock disponible');
+  })) matrix.shift();
+
+  matrix.slice(0,15-startRow).forEach((vals,r)=>{
+    const row=rows[startRow+r];
+    if(!row) return;
+
+    vals.slice(0, keys.length-startCol).forEach((val,c)=>{
+      const key=keys[startCol+c];
+      const input=row.querySelector('[data-k="'+key+'"]');
+      if(!input) return;
+
+      let value=String(val ?? '').trim();
+
+      // Excel can copy French-formatted numbers such as "1 000,50".
+      if(key==='disponible' || key==='demande'){
+        value=value.replace(/\u00a0/g,' ').replace(/\s+/g,'').replace(',','.');
+      }
+
+      // If the Excel "stock demandé" cell is blank, keep the automatic
+      // requested quantity = available quantity.
+      if(key==='demande' && value===''){
+        const q=input;
+        if(q.dataset.autoDefault==='1') return;
+      }
+
+      input.value=value;
+
+      // Requested quantity defaults to available quantity.
+      if(key==='disponible'){
+        const q=row.querySelector('[data-k="demande"]');
+        if(q && (!q.value.trim() || q.dataset.autoDefault==='1')){
+          q.value=value;
+          q.dataset.autoDefault='1';
+          q.dispatchEvent(new Event('input',{bubbles:true}));
+        }
+      }
+      if(key==='demande' && value!==''){
+        // A value explicitly pasted by the user is independent.
+        input.dataset.autoDefault='0';
+      }
+
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+  });
+
+  updateLineCount();
+}
+
+document.addEventListener('paste', handleExcelPaste, true);
+
+function updateLineCount(){
+  const rows=[...document.querySelectorAll('#lineBody tr')];
+  const usedRows=rows.filter(tr=>[...tr.querySelectorAll('input')].some(i=>i.value.trim()!==''));
+
+  let n=0;
+  usedRows.forEach(tr=>{
+    const inputs=[...tr.querySelectorAll('input')];
+    const used=inputs.some(i=>i.value.trim()!=='');
+    if(used) n++;
+  });
+  updateTotalDemandMessage();
+  const el=document.getElementById('lineCountMessage');
+  if(el) el.textContent=n+' ligne'+(n>1?'s':'')+' demandée'+(n>1?'s':'');
+}
+function nowLocal(){
+ const d=new Date(); return d.toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
+}
+function yymmdd(){
+ const d=new Date(); return String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+}
+function nextNumber(){
+ const p=yymmdd(); let max=0;
+ requests.forEach(r=>{if((r.numero||'').startsWith(p)){const n=parseInt(r.numero.slice(6),10);if(!isNaN(n))max=Math.max(max,n)}});
+ return p+String(max+1).padStart(4,'0');
+}
+function showSection(id){
+ document.querySelectorAll('main section[id]').forEach(s=>s.classList.add('hidden'));
+ document.getElementById(id).classList.remove('hidden');
+ if(id==='new'){document.getElementById('dateAuto').value=nowLocal();if(!document.querySelector('#lineBody tr')) addLine();}
+}
+function emptyLine(){
+ return {article:'',designation:'',us:'',lot:'',disponible:'',demande:'',unite:'',actuel:'',desire:''};
+}
+function addLine(data){
+ const body=document.getElementById('lineBody');
+ if(body.children.length>=MAX_LINES){alert('Maximum 15 lignes.');return;}
+ const tr=document.createElement('tr');
+ tr.innerHTML=`
+ <td class="num"></td>
+ <td><input data-k="article" placeholder="Article"></td>
+ <td><input data-k="designation" placeholder="Désignation"></td>
+ <td><input data-k="us" inputmode="numeric" maxlength="10" placeholder="10 chiffres"></td>
+ <td><input data-k="lot" maxlength="10" placeholder="Lot facultatif"></td>
+ <td><input data-k="disponible" type="number" step="any" placeholder="À remplir"></td>
+ <td><input data-k="demande" class="qty" type="number" step="any" min="0" placeholder="À remplir"></td>
+ <td><input data-k="unite" placeholder="KG, L..."></td>
+ <td><input data-k="actuel" placeholder="Emplacement"></td>
+ <td><input data-k="desire" placeholder="Destination"></td>
+ <td><button class="btn-danger" onclick="this.closest('tr').remove();renumber()">×</button></td>`;
+ body.appendChild(tr);
+ if(data) Object.keys(data).forEach(k=>{const el=tr.querySelector(`[data-k="${k}"]`);if(el&&data[k]!=null)el.value=data[k]});
+ tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{validateRow(tr);updateAutoComment()}));
+ renumber(); validateRow(tr);
+}
+function renumber(){[...document.querySelectorAll('#lineBody tr')].forEach((tr,i)=>tr.querySelector('.num').textContent=i+1)}
+function getRows(){
+ return [...document.querySelectorAll('#lineBody tr')].map(tr=>{
+  const o={};tr.querySelectorAll('[data-k]').forEach(i=>o[i.dataset.k]=i.value.trim());return {tr,o};
+ });
+}
+function validateRow(tr){
+ const o={};tr.querySelectorAll('[data-k]').forEach(i=>o[i.dataset.k]=i.value.trim());
+ tr.classList.remove('line-ok','line-warning','line-error');
+ let bad=false,warn=false;
+ if(o.us && !/^\d{10}$/.test(o.us))bad=true;
+ if(o.lot && !/^[A-Za-z0-9]{1,10}$/.test(o.lot))bad=true;
+ if(o.demande!=='' && o.disponible!=='' && Number(o.demande)>Number(o.disponible))warn=true;
+ if(bad)tr.classList.add('line-error'); else if(warn)tr.classList.add('line-warning'); else if(o.article||o.designation)tr.classList.add('line-ok');
+}
+function updateAutoComment(){
+ const missing=getRows().filter(x=>(x.o.article||x.o.designation||x.o.demande)&&!x.o.lot).map(x=>x.tr.querySelector('.num').textContent);
+ const box=document.getElementById('autoComment');
+ if(missing.length){box.classList.remove('hidden');box.innerHTML='<strong>Commentaire automatique :</strong> Lot non renseigné – ligne(s) '+missing.join(', ')+'.';}
+ else box.classList.add('hidden');
+}
+function clearLines(){document.getElementById('lineBody').innerHTML='';for(let i=0;i<MAX_LINES;i++)addLine();updateAutoComment();updateLineCount();}
+
+
+
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+
+function saveRequest(){
+ const rows=getRows().filter(x=>Object.values(x.o).some(v=>v!==''));
+ if(!document.getElementById('demandeur').value.trim()){alert('Renseigne le demandeur.');return}
+ if(rows.length<1){alert('Ajoute au moins une ligne.');return}
+ if(rows.length>MAX_LINES){alert('Maximum 15 lignes.');return}
+ for(const x of rows){
+  const o=x.o;
+  if(o.us && !/^\d{10}$/.test(o.us)){alert('N° US incorrect à la ligne '+x.tr.querySelector('.num').textContent+' : exactement 10 chiffres.');return}
+  if(o.lot && !/^\d{1,10}$/.test(o.lot)){alert('Lot incorrect à la ligne '+x.tr.querySelector('.num').textContent+' : 1 à 10 caractères alphanumériques maximum.');return}
+  if(!o.article){alert('Article manquant à la ligne '+x.tr.querySelector('.num').textContent+'.');return}
+  if(!o.demande || Number(o.demande)<=0){alert('Quantité demandée manquante à la ligne '+x.tr.querySelector('.num').textContent+'.');return}
+  if(o.disponible!=='' && Number(o.demande)>Number(o.disponible)){if(!confirm('La quantité demandée dépasse la quantité disponible à la ligne '+x.tr.querySelector('.num').textContent+'. Continuer ?'))return}
+  if(!o.desire){alert('Emplacement souhaité manquant à la ligne '+x.tr.querySelector('.num').textContent+'.');return}
+ }
+ const missing=rows.filter(x=>!x.o.lot).map(x=>x.tr.querySelector('.num').textContent);
+ let comment=document.getElementById('commentaire').value.trim();
+ if(missing.length) comment+=(comment?'\\n':'')+'Commentaire automatique : Lot non renseigné – ligne(s) '+missing.join(', ')+'.';
+ const req={numero:nextNumber(),date:new Date().toISOString(),demandeur:document.getElementById('demandeur').value.trim(),windows:document.getElementById('windows').value.trim(),email:document.getElementById('email').value.trim(),commentaire:comment,statut:'A TRAITER',lignes:rows.map(x=>({...x.o,statutPhysique:'EN ATTENTE',statutSAP:'EN ATTENTE',anomalie:false}))};
+ requests.push(req);localStorage.setItem(KEY,JSON.stringify(requests));alert('Demande '+req.numero+' enregistrée.');resetNew();renderDashboard();showSection('list');renderList();
+}
+function resetNew(){
+ document.getElementById('demandeur').value='';document.getElementById('windows').value='';document.getElementById('email').value='';document.getElementById('commentaire').value='';document.getElementById('lineBody').innerHTML='';for(let i=0;i<MAX_LINES;i++)addLine();updateAutoComment();updateLineCount();
+}
+function renderDashboard(){
+ document.getElementById('statTotal').textContent=requests.length;
+ document.getElementById('statAttente').textContent=requests.filter(r=>r.statut==='A TRAITER'||r.statut==='EN COURS').length;
+ document.getElementById('statPartiel').textContent=requests.filter(r=>r.statut==='PARTIELLE').length;
+ document.getElementById('statTermine').textContent=requests.filter(r=>r.statut==='TERMINEE').length;
+}
+function badge(s){let c='blue';if(s==='TERMINEE')c='green';else if(s==='PARTIELLE')c='orange';else if(s==='ERREUR')c='red';return `<span class="badge ${c}">${escapeHtml(s)}</span>`}
+function renderList(){
+ const b=document.getElementById('requestBody');b.innerHTML='';
+ requests.slice().reverse().forEach((r,idx)=>{
+  const tr=document.createElement('tr');tr.innerHTML=`<td>${escapeHtml(r.numero)}</td><td>${new Date(r.date).toLocaleString('fr-FR')}</td><td>${escapeHtml(r.demandeur)}</td><td>${r.lignes.length}</td><td>${badge(r.statut)}</td><td><button class="btn-light" onclick="showDetail('${r.numero}')">Ouvrir</button></td>`;b.appendChild(tr);
+ });
+}
+function showDetail(numero){
+ const r=requests.find(x=>x.numero===numero);if(!r)return;
+ const d=document.getElementById('detail');d.classList.remove('hidden');
+ d.innerHTML=`<div class="detail-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+ <div><h3 style="margin:0 0 6px">Demande ${escapeHtml(r.numero)}</h3>
+ <p style="margin:0"><strong>Demandeur :</strong> ${escapeHtml(r.demandeur)} &nbsp; <strong>Date :</strong> ${new Date(r.date).toLocaleString('fr-FR')}</p>
+ <p><strong>Statut :</strong> ${badge(r.statut)}</p></div>
+ <div class="detail-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+   <button class="btn-light" type="button" onclick="printRequest('${escapeHtml(r.numero)}')">🖨️ Imprimer</button>
+   <button class="btn-primary" type="button" onclick="prepareTakeover('${escapeHtml(r.numero)}')">Prise en charge</button>
+ </div>
+ </div>
+ ${r.commentaire?'<div class="note">'+escapeHtml(r.commentaire).replace(/\n/g,'<br>')+'</div>':''}
+ <div class="table-wrap"><table><thead><tr><th>#</th><th>Article</th><th>Désignation</th><th>US</th><th>Lot</th><th>Demandée</th><th>Disponible</th><th>Unité</th><th>Actuel</th><th>Souhaité</th></tr></thead><tbody>${r.lignes.map((l,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(l.article)}</td><td>${escapeHtml(l.designation)}</td><td>${escapeHtml(l.us)}</td><td>${escapeHtml(l.lot)}</td><td>${escapeHtml(l.demande)}</td><td>${escapeHtml(l.disponible)}</td><td>${escapeHtml(l.unite)}</td><td>${escapeHtml(l.actuel)}</td><td>${escapeHtml(l.desire)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+document.getElementById('dateAuto').value=nowLocal();for(let i=0;i<15;i++)addLine();renderDashboard();showSection('new');
+</script>
+
+
+
+
+<script>
+function printRequest(numero){
+  const r=requests.find(x=>x.numero===numero);
+  if(!r)return;
+  const rows=r.lignes.map((l,i)=>`
+    <tr><td>${i+1}</td><td>${escapeHtml(l.article)}</td><td>${escapeHtml(l.designation)}</td>
+    <td>${escapeHtml(l.us)}</td><td>${escapeHtml(l.lot)}</td><td>${escapeHtml(l.demande)}</td>
+    <td>${escapeHtml(l.disponible)}</td><td>${escapeHtml(l.unite)}</td><td>${escapeHtml(l.actuel)}</td><td>${escapeHtml(l.desire)}</td></tr>`).join('');
+  const w=window.open('','_blank','width=1200,height=800');
+  if(!w){alert("Autorise les fenêtres pop-up pour imprimer la demande.");return;}
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8">
+  <title>Demande ${escapeHtml(r.numero)}</title>
+  <style>
+  body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{font-size:22px}p{margin:6px 0}
+  table{width:100%;border-collapse:collapse;margin-top:18px;font-size:11px}
+  th,td{border:1px solid #999;padding:6px;text-align:left}th{background:#eee}
+  .head{display:flex;justify-content:space-between;gap:20px}.comment{margin-top:15px;padding:10px;border:1px solid #ccc}
+  </style></head><body>
+  <h1>Demande de transfert interne — ${escapeHtml(r.numero)}</h1>
+  <div class="head"><div><p><strong>Demandeur :</strong> ${escapeHtml(r.demandeur)}</p>
+  <p><strong>Identifiant Windows :</strong> ${escapeHtml(r.windows)}</p>
+  <p><strong>Email :</strong> ${escapeHtml(r.email)}</p></div>
+  <div><p><strong>Date :</strong> ${new Date(r.date).toLocaleString('fr-FR')}</p>
+  <p><strong>Statut :</strong> ${escapeHtml(r.statut)}</p></div></div>
+  ${r.commentaire?'<div class="comment"><strong>Commentaire :</strong><br>'+escapeHtml(r.commentaire).replace(/\n/g,'<br>')+'</div>':''}
+  <table><thead><tr><th>#</th><th>Article</th><th>Désignation</th><th>N° US</th><th>Lot</th><th>Demandée</th><th>Disponible</th><th>Unité</th><th>Actuel</th><th>Souhaité</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+function prepareTakeover(numero){
+  const sel=document.getElementById('opRequest');
+  if(sel){
+    sel.value=numero;
+    if(typeof opRender==='function')opRender();
+  }
+  const section=document.getElementById('operatorSection');
+  if(section)section.scrollIntoView({behavior:'smooth',block:'start'});
+  const name=document.getElementById('opName');
+  if(name)setTimeout(()=>name.focus(),350);
+}
+</script>
+<script>
+const OP_KEY='transferts_operateurs_v1';
+function opNow(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+function opEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function opFillRequests(){const sel=document.getElementById('opRequest');if(!sel)return;sel.innerHTML='<option value="">Sélectionner une demande</option>'+requests.slice().reverse().map(r=>'<option value="'+opEsc(r.numero)+'">'+opEsc(r.numero)+' — '+opEsc(r.demandeur)+' — '+r.lignes.length+' ligne(s) — '+opEsc(r.statut)+'</option>').join('')}
+function opGet(){const n=document.getElementById('opRequest').value;return requests.find(r=>r.numero===n)}
+function opRender(){const r=opGet(),b=document.getElementById('opBody');if(!b)return;b.innerHTML='';if(!r)return;r.lignes.forEach((l,i)=>{const st=l.statutPhysique||'EN ATTENTE';const tr=document.createElement('tr');tr.className=st==='REALISE'?'op-line-realise':st==='PARTIEL'?'op-line-partiel':st==='ANOMALIE'?'op-line-anomalie':'op-line-attente';tr.innerHTML='<td>'+(i+1)+'</td><td>'+opEsc(l.article||'')+'</td><td>'+opEsc(l.lot||'')+'</td><td>'+opEsc(l.demande||'')+'</td><td><input class="opQty" value="'+opEsc(l.quantiteRealisee??l.demande??'')+'" inputmode="decimal"></td><td><select class="opStatus"><option value="EN ATTENTE">En attente</option><option value="REALISE">Réalisé</option><option value="PARTIEL">Partiel</option><option value="ANOMALIE">Anomalie</option></select></td><td><input class="opAnom" value="'+opEsc(l.motifAnomalie||'')+'" placeholder="Motif obligatoire"></td>';b.appendChild(tr);tr.querySelector('.opStatus').value=st;tr.querySelector('.opStatus').onchange=()=>{tr.className=tr.querySelector('.opStatus').value==='REALISE'?'op-line-realise':tr.querySelector('.opStatus').value==='PARTIEL'?'op-line-partiel':tr.querySelector('.opStatus').value==='ANOMALIE'?'op-line-anomalie':'op-line-attente'};})}
+function opCollect(r){const trs=[...document.querySelectorAll('#opBody tr')];r.lignes.forEach((l,i)=>{const tr=trs[i];if(!tr)return;l.quantiteRealisee=tr.querySelector('.opQty').value.trim();l.statutPhysique=tr.querySelector('.opStatus').value;l.motifAnomalie=tr.querySelector('.opAnom').value.trim();l.anomalie=l.statutPhysique==='ANOMALIE'||!!l.motifAnomalie});}
+function opSave(msg){const r=opGet();if(!r)return false;opCollect(r);r.operateur=r.operateur||document.getElementById('opName').value.trim();r.datePriseEnCharge=r.datePriseEnCharge||document.getElementById('opDate').value;localStorage.setItem(KEY,JSON.stringify(requests));localStorage.setItem(KEY+'_requests',JSON.stringify(requests));localStorage.setItem(KEY+'_last',JSON.stringify({numero:r.numero,operateur:r.operateur,date:r.datePriseEnCharge}));renderDashboard();renderList();document.getElementById('opMsg').textContent=msg;opRender();return true}
+function opTakeOver(){const r=opGet();const name=document.getElementById('opName').value.trim();if(!r){alert('Sélectionne une demande.');return}if(!name){alert("Renseigne le nom de l'opérateur.");return}const d=document.getElementById('opDate');if(!d.value)d.value=opNow();r.operateur=name;r.datePriseEnCharge=d.value;r.statut='EN COURS';opSave('Demande '+r.numero+' prise en charge par '+name+'.')}
+function opComplete(){const r=opGet();if(!r){alert('Sélectionne une demande.');return}opCollect(r);if(r.lignes.some(l=>l.statutPhysique==='ANOMALIE'&&!l.motifAnomalie)){alert('Le motif est obligatoire pour chaque anomalie.');return}r.lignes.forEach(l=>{if(l.statutPhysique==='EN ATTENTE'){l.statutPhysique='REALISE';l.quantiteRealisee=l.demande}});r.statut='TERMINEE';localStorage.setItem(KEY,JSON.stringify(requests));localStorage.setItem(KEY+'_requests',JSON.stringify(requests));document.getElementById('opMsg').textContent='Réalisation validée pour la demande '+r.numero+'.';opRender();renderDashboard();renderList()}
+function opPartial(){const r=opGet();if(!r){alert('Sélectionne une demande.');return}opCollect(r);if(!r.lignes.some(l=>l.statutPhysique==='PARTIEL'||l.statutPhysique==='EN ATTENTE')){alert('Indique au moins une ligne partielle ou en attente.');return}r.statut='PARTIELLE';localStorage.setItem(KEY,JSON.stringify(requests));localStorage.setItem(KEY+'_requests',JSON.stringify(requests));document.getElementById('opMsg').textContent='Réalisation partielle enregistrée.';opRender();renderDashboard();renderList()}
+function opAnomaly(){const r=opGet();if(!r){alert('Sélectionne une demande.');return}opCollect(r);const bad=r.lignes.filter(l=>l.statutPhysique==='ANOMALIE');if(!bad.length){alert('Sélectionne au moins une ligne en anomalie.');return}if(bad.some(l=>!l.motifAnomalie)){alert('Le motif est obligatoire pour chaque anomalie.');return}r.statut='ERREUR';localStorage.setItem(KEY,JSON.stringify(requests));localStorage.setItem(KEY+'_requests',JSON.stringify(requests));document.getElementById('opMsg').textContent='Anomalie enregistrée sur la demande '+r.numero+'.';opRender();renderDashboard();renderList()}
+function opInit(){const d=document.getElementById('opDate');if(d&&!d.value)d.value=opNow();opFillRequests();document.getElementById('opRequest').onchange=opRender}
+window.addEventListener('load',opInit);
+</script></body>
+</html>
